@@ -1,4 +1,7 @@
 from sklearn import linear_model as lm
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+import numpy as np
 import pandas
 
 # CSV file paths
@@ -17,9 +20,36 @@ no_str_columns = [
     "Size of City", "Wears Glasses", "Body Height [cm]"
 ]
 
+ohe_columns = [
+    "Gender", "Country", "Profession", "Degree"
+]
+
+input_columns = [
+    "Year of Record", "Gender", "Age",
+    "Country", "Size of City", "Profession", "University Degree",
+    "Wears Glasses", "Hair Color", "Body Height [cm]"
+]
+
+target_columns = [
+    "Income in EUR"
+]
+
+def drop_columns(dataframe):
+    """ Remove unnecessary input columns before inserting into model
+    """
+    return dataframe.drop(
+        [
+            "Hair Color",
+            "Wears Glasses",
+            "Body Height [cm]"
+        ], 
+        axis=1
+    )
+
 def simple_model(labelled_data, unlabelled_data):
-    """ Replaces NaN with -1, ignores string fields,
-        does not modify data in any other way,
+    """ Replaces NaN values with -1, 
+        ignores non-numeric fields,
+        does not modify data in any other way.
     """
     # removing NaN fields
     clean_labelled = labelled_data.dropna() # so a -1 won't skew the model
@@ -43,11 +73,75 @@ def simple_model(labelled_data, unlabelled_data):
     })
     return results
 
+def better_model(labelled_data, unlabelled_data):
+    """ Replaces NaN values with mean,
+        categorises non-numeric fields with OneHotEncoder,
+
+    """
+    print("cleaning data...")
+    clean_labelled = labelled_data.dropna()
+    clean_unlabelled = unlabelled_data[all_columns]
+    mean = clean_unlabelled.mean()
+    clean_unlabelled = clean_unlabelled.fillna(mean)
+    clean_unlabelled = clean_unlabelled.fillna("None")
+
+    # clean input data
+    clean_labelled = drop_columns(clean_labelled)
+    clean_unlabelled = drop_columns(clean_unlabelled)
+
+    print("one hot encoding data...")
+    # One hot encoding
+
+    # ohe clean_labelled
+    # ohe clean_unlabelled
+
+    """
+    clean_labelled = pandas.get_dummies(
+        clean_labelled,
+        prefix=ohe_columns,
+        drop_first=True
+    )
+    clean_unlabelled = pandas.get_dummies(
+        clean_unlabelled,
+        prefix=ohe_columns,
+        drop_first=True
+    )
+    """
+    unknown_data = clean_unlabelled.drop(["Instance"], axis=1)
+
+    print("splitting data into train and test...")
+    # 80/20 split
+    train, test = train_test_split(clean_labelled, test_size=0.2)
+
+    training_data = train.drop(["Income in EUR"], axis=1).drop(["Instance"], axis=1)
+    target_data = train[target_columns]
+
+    test_data = test.drop(["Income in EUR"], axis=1).drop(["Instance"], axis=1)
+    test_target = test[target_columns]
+
+    print("fitting model...")
+    # fit model
+    lasso = lm.LassoCV(cv=3)
+    lasso.fit(training_data, target_data)
+
+    print("analysing test results...")
+    # validate test
+    test_result = lasso.predict(test_data)
+    error = np.sqrt(mean_squared_error(test_target, test_result))
+    print("Root mean squared error: ", error)
+
+    print("predicting unknown data...")
+    values = lasso.predict(unknown_data)
+    results = pandas.DataFrame({
+        "Instance": clean_unlabelled["Instance"].values,
+        "Income": values.flatten()
+    })
+    return results
+
 
 if __name__ == "__main__":
     labelled_data = pandas.read_csv(with_labels)
     unlabelled_data = pandas.read_csv(without_labels)
 
-    results = simple_model(labelled_data, unlabelled_data)
-    print(results)
-    results.to_csv(results_file, index=False)
+    # testing(unlabelled_data)
+    results = better_model(labelled_data, unlabelled_data)
