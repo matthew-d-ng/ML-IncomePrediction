@@ -1,6 +1,7 @@
 from sklearn import linear_model as lm
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
 import numpy as np
 import pandas
 
@@ -21,7 +22,7 @@ no_str_columns = [
 ]
 
 ohe_columns = [
-    "Gender", "Country", "Profession", "Degree"
+    "Gender", "Country", "Profession", "University Degree"
 ]
 
 input_columns = [
@@ -46,7 +47,7 @@ def drop_columns(dataframe):
         axis=1
     )
 
-def simple_model(labelled_data, unlabelled_data):
+def bad_model(labelled_data, unlabelled_data):
     """ Replaces NaN values with -1, 
         ignores non-numeric fields,
         does not modify data in any other way.
@@ -74,15 +75,15 @@ def simple_model(labelled_data, unlabelled_data):
     return results
 
 def better_model(labelled_data, unlabelled_data):
-    """ Replaces NaN values with mean,
+    """ Replaces NaN values with column mean,
         categorises non-numeric fields with OneHotEncoder,
-
+        80/20 splits data to help verify model,
+        use LassoCV model
     """
     print("cleaning data...")
     clean_labelled = labelled_data.dropna()
     clean_unlabelled = unlabelled_data[all_columns]
-    mean = clean_unlabelled.mean()
-    clean_unlabelled = clean_unlabelled.fillna(mean)
+    clean_unlabelled = clean_unlabelled.fillna(method="ffill")
     clean_unlabelled = clean_unlabelled.fillna("None")
 
     # clean input data
@@ -91,22 +92,14 @@ def better_model(labelled_data, unlabelled_data):
 
     print("one hot encoding data...")
     # One hot encoding
-
-    # ohe clean_labelled
-    # ohe clean_unlabelled
-
-    """
-    clean_labelled = pandas.get_dummies(
-        clean_labelled,
-        prefix=ohe_columns,
-        drop_first=True
+    ohe = OneHotEncoder(
+        categories="auto", 
+        handle_unknown="ignore",
+        sparse=False
     )
-    clean_unlabelled = pandas.get_dummies(
-        clean_unlabelled,
-        prefix=ohe_columns,
-        drop_first=True
-    )
-    """
+    clean_labelled = encode_training(ohe, clean_labelled)
+    clean_unlabelled = encode_testing(ohe, clean_unlabelled)
+
     unknown_data = clean_unlabelled.drop(["Instance"], axis=1)
 
     print("splitting data into train and test...")
@@ -128,9 +121,10 @@ def better_model(labelled_data, unlabelled_data):
     # validate test
     test_result = lasso.predict(test_data)
     error = np.sqrt(mean_squared_error(test_target, test_result))
-    print("Root mean squared error: ", error)
+    print("Root mean squared error of test data: ", error)
 
     print("predicting unknown data...")
+    # predict and format
     values = lasso.predict(unknown_data)
     results = pandas.DataFrame({
         "Instance": clean_unlabelled["Instance"].values,
@@ -138,10 +132,43 @@ def better_model(labelled_data, unlabelled_data):
     })
     return results
 
+def encode_training(ohe, dataframe):
+    x = constrain_col_vals(dataframe)
+    arr = ohe.fit_transform(x[ohe_columns])
+    x = merge_encoding(ohe, x, arr)
+    return x
+
+def encode_testing(ohe, dataframe):
+    x = constrain_col_vals(dataframe)
+    arr = ohe.transform(x[ohe_columns])
+    x = merge_encoding(ohe, x, arr)
+    return x
+
+def merge_encoding(ohe, dataframe, arr):
+    col_names = ohe.get_feature_names(ohe_columns)
+    encoded = pandas.DataFrame(arr, columns = col_names)
+    dataframe = dataframe.drop(ohe_columns, axis=1).reset_index(drop=True)
+    dataframe = dataframe.join(encoded)
+    return dataframe
+
+def constrain_col_vals(dataframe):
+    x = dataframe
+
+    mapping = {"male": 0, "female": 1, "other": 2}
+    x["Gender"] = x["Gender"].map(mapping)
+    x["Gender"] = x["Gender"].fillna(2)
+
+    mapping = {"No": 0, "Bachelor": 1, "Master": 2, "PhD": 3}
+    x["University Degree"] = x["University Degree"].map(mapping)
+    x["University Degree"] = x["University Degree"].fillna(0)
+
+    return x
+
 
 if __name__ == "__main__":
     labelled_data = pandas.read_csv(with_labels)
     unlabelled_data = pandas.read_csv(without_labels)
 
-    # testing(unlabelled_data)
+    # testing(labelled_data)
     results = better_model(labelled_data, unlabelled_data)
+    results.to_csv(results_file)
