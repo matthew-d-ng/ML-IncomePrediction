@@ -171,4 +171,4 @@ if __name__ == "__main__":
 
     # testing(labelled_data)
     results = better_model(labelled_data, unlabelled_data)
-    results.to_csv(results_file)
+    results.to_csv(results_file, index=False)
