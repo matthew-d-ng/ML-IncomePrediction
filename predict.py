@@ -1,5 +1,6 @@
 from sklearn import linear_model as lm
 from sklearn.metrics import mean_squared_error
+from sklearn.metrics import explained_variance_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import StandardScaler
@@ -82,7 +83,9 @@ def lin_model(labelled_data, unlabelled_data):
     # validate test
     test_result = lasso.predict(test_data)
     error = np.sqrt(mean_squared_error(test_target, test_result))
+    variance = explained_variance_score(test_target, test_result)
     print("Root mean squared error of test data: ", error)
+    print("Variance: ", variance)
 
     print("predicting unknown data...")
     # predict and format
