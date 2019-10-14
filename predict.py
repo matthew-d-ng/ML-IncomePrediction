@@ -16,36 +16,21 @@ all_columns = [
     "Country", "Size of City", "Profession", "University Degree",
     "Wears Glasses", "Hair Color", "Body Height [cm]"
 ]
-
 no_str_columns = [
     "Instance", "Year of Record", "Age",
     "Size of City", "Wears Glasses", "Body Height [cm]"
 ]
-
 ohe_columns = [
-    "Country", "Profession", "University Degree", "Gender", "Hair Color"
+    "Country", "Profession", "Gender", "Hair Color"#, "University Degree"
 ]
-
 input_columns = [
     "Year of Record", "Gender", "Age",
     "Country", "Size of City", "Profession", "University Degree",
     "Wears Glasses", "Hair Color", "Body Height [cm]"
 ]
-
 target_columns = [
     "Income in EUR"
 ]
-
-def drop_columns(dataframe):
-    """ Remove unnecessary input columns before inserting into model """
-    return dataframe.drop(
-        [
-            "Hair Color",
-            "Wears Glasses",
-            "Body Height [cm]"
-        ], 
-        axis=1
-    )
 
 def lin_model(labelled_data, unlabelled_data):
     """ Parameters: training dataframe, unknown dataframe
@@ -58,7 +43,7 @@ def lin_model(labelled_data, unlabelled_data):
     clean_labelled = labelled_data.dropna()
     clean_unlabelled = unlabelled_data[all_columns]
     clean_unlabelled = clean_unlabelled.fillna(method="ffill")
-    clean_unlabelled = clean_unlabelled.fillna("None")
+    # clean_unlabelled = clean_unlabelled.fillna("None")
 
     # remove some columns
     # clean_labelled = drop_columns(clean_labelled)
@@ -136,27 +121,38 @@ def constrain_col_vals(dataframe):
     x = dataframe
 
     values = {"male": 0, "female": 1, "other": 2}
-    x["Gender"] = x["Gender"].map(values)
-    x["Gender"] = x["Gender"].fillna(2)
+    x.loc[:, "Gender"] = x["Gender"].map(values)
+    x.loc[:, "Gender"] = x["Gender"].fillna(2)
 
     values = {"No": 0, "Bachelor": 1, "Master": 2, "PhD": 3}
-    x["University Degree"] = x["University Degree"].map(values)
-    x["University Degree"] = x["University Degree"].fillna(0)
+    x.loc[:, "University Degree"] = x["University Degree"].map(values)
+    x.loc[:, "University Degree"] = x["University Degree"].fillna(0)
 
     values = {"Black": 0, "Brown": 1, "Red": 2, "Blond": 3}
-    x["Hair Color"] = x["Hair Color"].map(values)
-    x["Hair Color"] = x["Hair Color"].fillna(4)
+    x.loc[:, "Hair Color"] = x["Hair Color"].map(values)
+    x.loc[:, "Hair Color"] = x["Hair Color"].fillna(4)
 
     return x
+
+def drop_columns(dataframe):
+    """ Remove unnecessary input columns before inserting into model """
+    return dataframe.drop(
+        [
+            "Hair Color",
+            "Wears Glasses",
+            "Body Height [cm]"
+        ], 
+        axis=1
+    )
 
 def split_data(dataframe):
     """ Splits data into training and test, also splits input from target"""
     train, test = train_test_split(dataframe, test_size=0.2)
 
-    train_data = train.drop(["Income in EUR"], axis=1).drop(["Instance"], axis=1)
+    train_data = train.drop(["Income in EUR", "Instance"], axis=1)
     train_target = train[target_columns]
 
-    test_data = test.drop(["Income in EUR"], axis=1).drop(["Instance"], axis=1)
+    test_data = test.drop(["Income in EUR", "Instance"], axis=1)
     test_target = test[target_columns]
 
     return (train_data, train_target, test_data, test_target)
