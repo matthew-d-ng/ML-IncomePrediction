@@ -11,14 +11,16 @@ Current pipeline:
 
 - NaN and None values are removed from the training set.
 
-- Categorical data is one hot encoded, with the exception of University Degree, which is encoded as a scale.
+- Categorical data is target encoded.
 
 - Data is split using an 80/20 ratio into training and testing data.
 
 - Values are scaled using sklearn's StandardScaler.
 
-- The training data is then fitted to the target data using a LassoCV model, with cross-validation set to 5.
+- Feature validation is recursively carried out using RFECV, with a Lasso model which examines error, with cross validation set to 5.
 
-- We then insert our testing data into the model for prediction, and proceed to compare it against our test targets. The root mean squared error is calculated.
+- The training data is then fitted to the target data using a KNeighborRegressor, taking into account 11 nearest neighbors for the vote, which is weighted according to distance.
+
+- We then insert our testing data into the model for prediction, and proceed to compare it against our test targets. The root mean squared error is calculated, as well as "explained variance".
 
 
