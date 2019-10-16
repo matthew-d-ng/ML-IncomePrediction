@@ -3,6 +3,8 @@ Using Python scikit-learn to try fit a linear regression model
 for some sample data.
 Results CSV is in the results folder. The file outside the results folder is the original empty one.
 
+I'm not sure if the result file is the same one uploaded to Kaggle, I may have ended up overwriting it by accident, but it should be close enough, it's the same model being run on it, just a different 80% of the data.
+
 Dataset categories:
 - Input data: "Year of Record", "Gender", "Age", "Country", "Size of City", "Profession", "University Degree", "Wears Glasses", "Hair Color", "Body Height [cm]"
 
