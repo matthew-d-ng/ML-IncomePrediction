@@ -1,6 +1,7 @@
 # ML-IncomePrediction
 Using Python scikit-learn to try fit a linear regression model 
 for some sample data.
+Results CSV is in the results folder. The file outside the results folder is the original empty one.
 
 Dataset categories:
 - Input data: "Year of Record", "Gender", "Age", "Country", "Size of City", "Profession", "University Degree", "Wears Glasses", "Hair Color", "Body Height [cm]"
